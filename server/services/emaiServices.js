@@ -1,21 +1,21 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: "gmail",
+  service: "gmail",
   port: 587,
   secure: false, // Use true for port 465, false for port 587
   auth: {
-    user: "maddison53@ethereal.email",
-    pass: "jn7jnAPss4f63QBp6D",
+    user: "elias.cit.bd@gmail.com",
+    pass: "faih mgxt chiz iqne",
   },
 });
 
-const sendEmail = async ({ email, subject, otp }) => {
+const sendEmail = async ({ email, subject, otp, template }) => {
   await transporter.sendMail({
-    from: '"E-Commerce" <maddison53@ethereal.email>',
+    from: '"E-Commerce"',
     to: email,
     subject: subject,
-    html: `<b>Email verification OTP: ${otp}</b>`, // HTML version of the message
+    html: template({ otp }), // HTML version of the message
   });
 };
 
