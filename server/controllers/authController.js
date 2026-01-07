@@ -1,7 +1,7 @@
 const userSchema = require("../models/userSchema");
-const { emailVerifyTem } = require("../services/emailTemp");
+const { emailVerifyTem, resetPassEmailTemp } = require("../services/emailTemp");
 const { sendEmail } = require("../services/emaiServices");
-const { generateOTP } = require("../services/helpers");
+const { generateOTP, generateAccessToken, generateRefreshToken, generateResetPassToken } = require("../services/helpers");
 const { responseHandler } = require("../services/responseHandler");
 const { isValidEmail } = require("../services/validation");
 
@@ -33,7 +33,7 @@ const signupUser = async (req, res) => {
     user.save();
     return responseHandler(res, 200, "Registration Successfylly, verify email", true);
   } catch (error) {
-    return responseHandler(res, 400, "Enter a valid email address");
+    return responseHandler(res, 500, "Internal Server Error");
   }
 };
 
@@ -64,7 +64,7 @@ const verifyOtp = async (req, res) => {
     res.status(200).send({ message: "Verified successfully" })
 
   } catch (error) {
-    res.status(500).send({ message: "Internal Server issue" });
+    return responseHandler(res, 500, "Internal Server Error");
   }
 }
 
@@ -93,7 +93,7 @@ const resendOTP = async (req, res) => {
       .status(201)
       .send({ message: "OTP send to your email successfully." });
   } catch (error) {
-    res.status(500).send({ message: "Internal Server issue" });
+    return responseHandler(res, 500, "Internal Server Error");
   }
 }
 
@@ -117,10 +117,49 @@ const signInUser = async (req, res) => {
         .status(400)
         .send({ message: "Wrong Password" });
     }
+    if (!existingUser.isVerified) return responseHandler(res, 400, "Email is not verified.");
+
+    const accToken = generateAccessToken(existingUser)
+    const refToken = generateRefreshToken(existingUser)
+
+    res.cookie("X-AS-Token", accToken, {
+      httpOnly: false, // Not accessible by client-side JS
+      secure: false,   // Only sent over HTTPS
+      maxAge: 3600000, // Expires in 1 hour (in milliseconds)
+      // sameSite: 'Strict' // Only send for same-site requests
+    })
+    res.cookie("X-RF-Token", refToken, {
+      httpOnly: false, // Not accessible by client-side JS
+      secure: false,   // Only sent over HTTPS
+      maxAge: 1296000000, // Expires in 1 hour (in milliseconds)
+      // sameSite: 'Strict' // Only send for same-site requests
+    })
     res.status(200).send({ message: "Login Successfylly" })
   } catch (error) {
-    res.status(500).send({ message: "Internal Server issue" });
+    return responseHandler(res, 500, "Internal Server Error");
   }
 }
 
-module.exports = { signupUser, verifyOtp, resendOTP, signInUser };
+const forgatePass = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).send({ message: "Email is required" });
+    if (!isValidEmail(email))
+      return res.status(400).send({ message: "Enter a valid email address" });
+    const existingUser = await userSchema.findOne({ email });
+    if (!existingUser)
+      return res
+        .status(400)
+        .send({ message: "Email is not registered" });
+
+    const resetPassToken = generateResetPassToken(existingUser);
+
+    const RESET_PASSWORD_LINK = `${process.env.CLIENT_URL || "http://localhost:3000"}/resetpass/?sec=${resetPassToken}`
+    sendEmail({ email, subject: "Reset Your Password", otp: RESET_PASSWORD_LINK, template: resetPassEmailTemp });
+    responseHandler(res, 200, "Find the reset password link in your email", true);
+  } catch (error) {
+    return responseHandler(res, 500, "Internal Server Error");
+  }
+}
+
+module.exports = { signupUser, verifyOtp, resendOTP, signInUser, forgatePass };
