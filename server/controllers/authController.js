@@ -1,7 +1,13 @@
 const userSchema = require("../models/userSchema");
 const { emailVerifyTem, resetPassEmailTemp } = require("../services/emailTemp");
 const { sendEmail } = require("../services/emaiServices");
-const { generateOTP, generateAccessToken, generateRefreshToken, generateResetPassToken } = require("../services/helpers");
+const {
+  generateOTP,
+  generateAccessToken,
+  generateRefreshToken,
+  generateResetPassToken,
+  hashResetToken,
+} = require("../services/helpers");
 const { responseHandler } = require("../services/responseHandler");
 const { isValidEmail } = require("../services/validation");
 
@@ -28,10 +34,20 @@ const signupUser = async (req, res) => {
       otp: generatedOtp,
       otpExpires: Date.now() + 2 * 60 * 1000,
     });
-    sendEmail({ email, subject: "Email Verification", otp: generatedOtp, template: emailVerifyTem });
+    sendEmail({
+      email,
+      subject: "Email Verification",
+      otp: generatedOtp,
+      template: emailVerifyTem,
+    });
 
     user.save();
-    return responseHandler(res, 200, "Registration Successfylly, verify email", true);
+    return responseHandler(
+      res,
+      200,
+      "Registration Successfylly, verify email",
+      true
+    );
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
@@ -41,8 +57,8 @@ const verifyOtp = async (req, res) => {
   try {
     const { otp, email } = req.body;
 
-    if (!otp) return res.status(400).send({ message: "OTP is required" })
-    if (!email) return res.status(400).send({ message: "Invalid Request" })
+    if (!otp) return res.status(400).send({ message: "OTP is required" });
+    if (!email) return res.status(400).send({ message: "Invalid Request" });
 
     const user = await userSchema.findOne({
       email,
@@ -59,19 +75,18 @@ const verifyOtp = async (req, res) => {
 
     user.isVerified = true;
     user.otp = null;
-    user.save()
+    user.save();
 
-    res.status(200).send({ message: "Verified successfully" })
-
+    res.status(200).send({ message: "Verified successfully" });
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
-}
+};
 
 const resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).send({ message: "Invalid Request" })
+    if (!email) return res.status(400).send({ message: "Invalid Request" });
 
     const user = await userSchema.findOne({
       email,
@@ -86,16 +101,19 @@ const resendOTP = async (req, res) => {
     const generatedOtp = generateOTP();
     user.otp = generatedOtp;
     user.otpExpires = Date.now() + 2 * 60 * 1000;
-    user.save()
-    sendEmail({ email, subject: "Email Verification", otp: generatedOtp, template: emailVerifyTem });
+    user.save();
+    sendEmail({
+      email,
+      subject: "Email Verification",
+      otp: generatedOtp,
+      template: emailVerifyTem,
+    });
 
-    res
-      .status(201)
-      .send({ message: "OTP send to your email successfully." });
+    res.status(201).send({ message: "OTP send to your email successfully." });
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
-}
+};
 
 const signInUser = async (req, res) => {
   try {
@@ -107,38 +125,35 @@ const signInUser = async (req, res) => {
       return res.status(400).send({ message: "Password is required" });
     const existingUser = await userSchema.findOne({ email });
     if (!existingUser)
-      return res
-        .status(400)
-        .send({ message: "Email is not registered" });
+      return res.status(400).send({ message: "Email is not registered" });
 
-    const matchPass = await existingUser.comparePassword(password)
+    const matchPass = await existingUser.comparePassword(password);
     if (!matchPass) {
-      return res
-        .status(400)
-        .send({ message: "Wrong Password" });
+      return res.status(400).send({ message: "Wrong Password" });
     }
-    if (!existingUser.isVerified) return responseHandler(res, 400, "Email is not verified.");
+    if (!existingUser.isVerified)
+      return responseHandler(res, 400, "Email is not verified.");
 
-    const accToken = generateAccessToken(existingUser)
-    const refToken = generateRefreshToken(existingUser)
+    const accToken = generateAccessToken(existingUser);
+    const refToken = generateRefreshToken(existingUser);
 
     res.cookie("X-AS-Token", accToken, {
       httpOnly: false, // Not accessible by client-side JS
-      secure: false,   // Only sent over HTTPS
+      secure: false, // Only sent over HTTPS
       maxAge: 3600000, // Expires in 1 hour (in milliseconds)
       // sameSite: 'Strict' // Only send for same-site requests
-    })
+    });
     res.cookie("X-RF-Token", refToken, {
       httpOnly: false, // Not accessible by client-side JS
-      secure: false,   // Only sent over HTTPS
+      secure: false, // Only sent over HTTPS
       maxAge: 1296000000, // Expires in 1 hour (in milliseconds)
       // sameSite: 'Strict' // Only send for same-site requests
-    })
-    res.status(200).send({ message: "Login Successfylly" })
+    });
+    res.status(200).send({ message: "Login Successfylly" });
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
-}
+};
 
 const forgatePass = async (req, res) => {
   try {
@@ -146,20 +161,68 @@ const forgatePass = async (req, res) => {
     if (!email) return res.status(400).send({ message: "Email is required" });
     if (!isValidEmail(email))
       return res.status(400).send({ message: "Enter a valid email address" });
+
     const existingUser = await userSchema.findOne({ email });
     if (!existingUser)
-      return res
-        .status(400)
-        .send({ message: "Email is not registered" });
+      return res.status(400).send({ message: "Email is not registered" });
 
-    const resetPassToken = generateResetPassToken(existingUser);
-
-    const RESET_PASSWORD_LINK = `${process.env.CLIENT_URL || "http://localhost:3000"}/resetpass/?sec=${resetPassToken}`
-    sendEmail({ email, subject: "Reset Your Password", otp: RESET_PASSWORD_LINK, template: resetPassEmailTemp });
-    responseHandler(res, 200, "Find the reset password link in your email", true);
+    const { resetToken, hashedToken } = generateResetPassToken();
+    existingUser.resetPassToken = hashedToken;
+    existingUser.resetExpire = Date.now() + 2 * 60 * 1000;
+    existingUser.save();
+    const RESET_PASSWORD_LINK = `${
+      process.env.CLIENT_URL || "http://localhost:3000"
+    }/auth/resetpass/${resetToken}`;
+    sendEmail({
+      email,
+      subject: "Reset Your Password",
+      otp: RESET_PASSWORD_LINK,
+      template: resetPassEmailTemp,
+    });
+    responseHandler(
+      res,
+      200,
+      "Find the reset password link in your email",
+      true
+    );
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
-}
+};
 
-module.exports = { signupUser, verifyOtp, resendOTP, signInUser, forgatePass };
+const resetPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    const { token } = req.params;
+    if (!newPassword)
+      return responseHandler(res, 400, "New Password is required");
+    if (!token) return responseHandler(res, 404, "Page not found");
+
+    const hashedToken = hashResetToken(token);
+
+    const existingUser = await userSchema.findOne({
+      resetPassToken: hashedToken,
+      resetExpire: { $gt: Date.now() },
+    });
+
+    if (!existingUser) return responseHandler(res, 400, "Invalid Request");
+
+    existingUser.password = newPassword;
+    existingUser.resetPassToken = undefined;
+    existingUser.resetExpire = undefined;
+    existingUser.save();
+
+    responseHandler(res, 200, "Password updated successfylly");
+  } catch (error) {
+    return responseHandler(res, 500, "Internal Server Error");
+  }
+};
+
+module.exports = {
+  signupUser,
+  verifyOtp,
+  resendOTP,
+  signInUser,
+  forgatePass,
+  resetPassword,
+};
