@@ -1,4 +1,6 @@
 const express = require("express");
+const multer  = require('multer')
+const upload = multer()
 const {
   signupUser,
   verifyOtp,
@@ -6,6 +8,8 @@ const {
   signInUser,
   forgatePass,
   resetPassword,
+  getUserProfile,
+  updateUserProfile,
 } = require("../controllers/authController");
 const authMiddleWare = require("../middleware/authMiddleware");
 const route = express.Router();
@@ -16,4 +20,6 @@ route.post("/resendotp", resendOTP);
 route.post("/signin", signInUser);
 route.post("/forgatepass", forgatePass);
 route.post("/resetpass/:token", resetPassword);
+route.get("/profile", authMiddleWare, getUserProfile);
+route.put("/profile", authMiddleWare, upload.single("avatar"), updateUserProfile);
 module.exports = route;

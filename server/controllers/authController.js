@@ -1,6 +1,7 @@
 const userSchema = require("../models/userSchema");
 const { emailVerifyTem, resetPassEmailTemp } = require("../services/emailTemp");
 const { sendEmail } = require("../services/emaiServices");
+
 const {
   generateOTP,
   generateAccessToken,
@@ -10,7 +11,6 @@ const {
 } = require("../services/helpers");
 const { responseHandler } = require("../services/responseHandler");
 const { isValidEmail } = require("../services/validation");
-
 const signupUser = async (req, res) => {
   try {
     const { fullName, email, password, phone, address } = req.body;
@@ -75,6 +75,7 @@ const verifyOtp = async (req, res) => {
 
     user.isVerified = true;
     user.otp = null;
+    user.otpExpires = null;
     user.save();
 
     res.status(200).send({ message: "Verified successfully" });
@@ -170,9 +171,8 @@ const forgatePass = async (req, res) => {
     existingUser.resetPassToken = hashedToken;
     existingUser.resetExpire = Date.now() + 2 * 60 * 1000;
     existingUser.save();
-    const RESET_PASSWORD_LINK = `${
-      process.env.CLIENT_URL || "http://localhost:3000"
-    }/auth/resetpass/${resetToken}`;
+    const RESET_PASSWORD_LINK = `${process.env.CLIENT_URL || "http://localhost:3000"
+      }/auth/resetpass/${resetToken}`;
     sendEmail({
       email,
       subject: "Reset Your Password",
@@ -218,6 +218,44 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const getUserProfile = async (req, res) => {
+  try {
+    const userProfile = await userSchema.findById(req.user._id).select("-password -otp -otpExpires -resetPassToken -resetExpire -updatedAt");
+    if (!userProfile) return responseHandler(res, 400, "Invalid Request");
+
+    responseHandler(res, 200, "", true, userProfile)
+  } catch (error) {
+    return responseHandler(res, 500, "Internal Server Error");
+  }
+}
+
+
+const updateUserProfile = async (req, res) => {
+  
+  try {
+    const { fullName, phone, address } = req.body;
+    const userId = req.user._id;
+    const updateFields = {};
+  
+    console.log("avatar=>", req.file);
+
+    return
+
+    if(avatar) updateFields.avatar = avatar;
+    if(fullName) updateFields.fullName = fullName;
+    if(phone) updateFields.phone = phone;
+    if(address) updateFields.address = address;
+    const user = await userSchema.findByIdAndUpdate(userId, updateFields, {new: true}).select("-password -otp -otpExpires -resetPassToken -resetExpire -updatedAt")
+
+    responseHandler(res, 201, "", user)
+
+  } catch (error) {
+    console.log(error);
+    
+    responseHandler(res, 500, error)
+  }
+}
+
 module.exports = {
   signupUser,
   verifyOtp,
@@ -225,4 +263,6 @@ module.exports = {
   signInUser,
   forgatePass,
   resetPassword,
+  getUserProfile,
+  updateUserProfile
 };
