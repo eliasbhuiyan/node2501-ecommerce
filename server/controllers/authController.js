@@ -1,13 +1,14 @@
 const userSchema = require("../models/userSchema");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../services/cloudinaryService");
 const { emailVerifyTem, resetPassEmailTemp } = require("../services/emailTemp");
 const { sendEmail } = require("../services/emaiServices");
-
 const {
   generateOTP,
   generateAccessToken,
   generateRefreshToken,
   generateResetPassToken,
   hashResetToken,
+  verifyToken,
 } = require("../services/helpers");
 const { responseHandler } = require("../services/responseHandler");
 const { isValidEmail } = require("../services/validation");
@@ -231,30 +232,53 @@ const getUserProfile = async (req, res) => {
 
 
 const updateUserProfile = async (req, res) => {
-  
   try {
     const { fullName, phone, address } = req.body;
     const userId = req.user._id;
-    const updateFields = {};
-  
-    console.log("avatar=>", req.file);
+    const avatar = req.file;
 
-    return
 
-    if(avatar) updateFields.avatar = avatar;
-    if(fullName) updateFields.fullName = fullName;
-    if(phone) updateFields.phone = phone;
-    if(address) updateFields.address = address;
-    const user = await userSchema.findByIdAndUpdate(userId, updateFields, {new: true}).select("-password -otp -otpExpires -resetPassToken -resetExpire -updatedAt")
+    const user = await userSchema.findById(userId).select("-password -otp -otpExpires -resetPassToken -resetExpire -updatedAt")
 
+    if (avatar) {
+      const imgPublicId = user.avatar.split("/").pop().split(".")[0];
+      deleteFromCloudinary(`avatar/${imgPublicId}`);
+      const imgRes = await uploadToCloudinary(avatar, "avatar")
+      user.avatar = imgRes.secure_url;
+    };
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+
+    user.save()
     responseHandler(res, 201, "", user)
-
   } catch (error) {
-    console.log(error);
-    
     responseHandler(res, 500, error)
   }
 }
+
+const refreshAccessToken = async (req, res) => {
+  try {
+    const refreshToken =
+      req.cookies?.["X-RF-Token"] || req.headers.authorization;
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
+    // 2. Verify refresh token
+    const decoded = verifyToken(refreshToken)
+    if(!decoded) return;
+    const accessToken = generateAccessToken(decoded)
+    res.cookie("X-AS-Token", accessToken, {
+      httpOnly: false, // Not accessible by client-side JS
+      secure: false, // Only sent over HTTPS
+      maxAge: 3600000, // Expires in 1 hour (in milliseconds)
+      // sameSite: 'Strict' // Only send for same-site requests
+    }).send({success: true});
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   signupUser,
@@ -264,5 +288,6 @@ module.exports = {
   forgatePass,
   resetPassword,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  refreshAccessToken
 };

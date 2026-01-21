@@ -5,12 +5,14 @@ const cors = require("cors");
 var cookieParser = require("cookie-parser");
 const dbConfig = require("./dbConfig");
 const route = require("./router");
+const cloudinaryConfig = require("./services/cloudinaryConfig");
 
 app.use(express.json());
 app.use(cookieParser());
 require("dotenv").config();
 app.use(cors());
 dbConfig();
+cloudinaryConfig()
 app.use(route);
 
 console.log(__filename);
