@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema(
   {
     avatar: {
-     type: String,
+      type: String,
     },
     fullName: {
       type: String,
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       default: "user",
-      enum: ["admin", "user"],
+      enum: ["admin", "user", "editor"],
     },
     isVerified: {
       type: Boolean,
@@ -58,7 +58,7 @@ userSchema.pre("save", async function () {
 
   try {
     user.password = await bcrypt.hash(user.password, 10);
-  } catch (err) {}
+  } catch (err) { }
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
