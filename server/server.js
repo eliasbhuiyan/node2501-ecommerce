@@ -15,7 +15,6 @@ dbConfig();
 cloudinaryConfig()
 app.use(route);
 
-
 app.listen(port, () => {
   console.log("Server is running");
 });
