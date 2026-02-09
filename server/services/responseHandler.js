@@ -12,4 +12,4 @@ const responseHandler = (
   });
 };
 
-module.exports = { responseHandler }
+module.exports = { responseHandler };

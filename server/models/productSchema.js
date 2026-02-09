@@ -5,6 +5,11 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+    },
     description: {
         type: String,
         required: true
@@ -29,37 +34,41 @@ const productSchema = new mongoose.Schema({
                 required: true,
                 unique: true
             },
-            attributes: {
-                color: {
-                    type: String,
-                    required: true
-                },
-                size: {
-                    type: String,
-                    required: true,
-                    enum: ["s", "m", "l", "xl", "2xl", "3xl"]
-                },
-                stock: {
-                    type: Number,
-                    required: true,
-                },
-            }
+            color: {
+                type: String,
+                required: true
+            },
+            size: {
+                type: String,
+                required: true,
+                enum: ["s", "m", "l", "xl", "2xl", "3xl"]
+            },
+            stock: {
+                type: Number,
+                required: true,
+            },
         }
     ],
-    tags: {
-        type: Array,
-    },
+    tags: [
+        {
+            type: String
+        }
+    ],
     thumbnail: {
         type: String,
         required: true
     },
-    images: {
-        type: Array,
-    },
+    images: [
+        {
+            type: String
+        }
+    ],
     isActive: {
         type: Boolean,
         default: false,
     }
-}, { timestamps: true })
+}, { timestamps: true });
+
+// productSchema.index({ slug: 1 });
 
 module.exports = mongoose.model("product", productSchema)
