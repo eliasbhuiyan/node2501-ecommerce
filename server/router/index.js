@@ -5,7 +5,7 @@ const productRouter = require("./product");
 
 route.use("/auth", authRouter);
 route.use("/product", productRouter);
-route.use("/category", require("./category"))
+route.use("/category", require("./category"));
 
 route.get("/", (req, res) => {
   res.send("From Server");

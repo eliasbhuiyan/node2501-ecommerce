@@ -12,7 +12,7 @@ app.use(cookieParser());
 require("dotenv").config();
 app.use(cors());
 dbConfig();
-cloudinaryConfig()
+cloudinaryConfig();
 app.use(route);
 
 app.listen(port, () => {
