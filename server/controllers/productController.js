@@ -2,7 +2,8 @@ const categorySchema = require("../models/categorySchema");
 const productSchema = require("../models/productSchema");
 const { uploadToCloudinary } = require("../services/cloudinaryService");
 const { responseHandler } = require("../services/responseHandler");
-const SIZE_ENUM = ["s", "m", "l", "xl", "2xl", "3xl"];
+const { SIZE_ENUM } = require("../services/utils");
+
 const createProduct = async (req, res) => {
   try {
     const {
@@ -87,7 +88,7 @@ const createProduct = async (req, res) => {
       isActive,
     });
     newProduct.save();
-    return responseHandler(res, 200, "Product uploaded successfully", true);
+    return responseHandler(res, 201, "Product uploaded successfully", true);
   } catch (error) {
     return responseHandler(res, 500, "Internal Server Error");
   }
@@ -105,6 +106,11 @@ const getProductList = async (req, res) => {
 
     const pipeline = [
       {
+        $match: {
+          "isActive": true,
+        },
+      },
+      {
         $lookup: {
           from: "categories",
           localField: "category",
@@ -116,27 +122,12 @@ const getProductList = async (req, res) => {
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
-      //   { $count: "count" },
-      //   {
-      //     $project: {
-      //       title: 1,
-      //       slug: 1,
-      //       description: 1,
-      //     //   category,
-      //     //   price,
-      //     //   discountPercentage,
-      //     //   variants,
-      //     //   tags,
-      //     //   thumbnail,
-      //     //   images,
-      //     },
-      //   },
     ];
 
     if (category) {
       pipeline.push({
         $match: {
-          "category.name": category,
+          "category.slug": category,
         },
       });
     }
@@ -162,4 +153,41 @@ const getProductList = async (req, res) => {
   }
 };
 
-module.exports = { createProduct, getProductList };
+const getProductDetals = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const productDetails = await productSchema.findOne({ slug, isActive: true }).populate("category", "name").select("-isActive -updatedAt -__v")
+    if (!productDetails) return responseHandler(res, 404, "Product not found");
+
+    return responseHandler(res, 200, "", true, productDetails);
+  } catch (error) {
+    return responseHandler(res, 500, "Internal Server Error");
+  }
+}
+
+const updateProduct = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      category,
+      price,
+      discountPercentage,
+      variants,
+      tags,
+      isActive, } = req.body;
+    const { slug } = req.params;
+
+    const productData = await productSchema.findOne({ slug })
+
+    console.log(productData);
+
+
+
+  } catch (error) {
+    console.log(error);
+
+  }
+}
+
+module.exports = { createProduct, getProductList, getProductDetals, updateProduct };

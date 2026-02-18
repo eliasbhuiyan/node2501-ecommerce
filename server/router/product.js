@@ -2,6 +2,8 @@ const express = require("express");
 const {
   createProduct,
   getProductList,
+  getProductDetals,
+  updateProduct,
 } = require("../controllers/productController");
 const authMiddleWare = require("../middleware/authMiddleware");
 const roleCheckMiddleware = require("../middleware/roleCheckMiddleware");
@@ -20,5 +22,7 @@ route.post(
   createProduct,
 );
 route.get("/allproducts", getProductList);
+route.get("/:slug", getProductDetals)
+route.put("/update/:slug", authMiddleWare, roleCheckMiddleware("admin", "editor"), updateProduct)
 
 module.exports = route;

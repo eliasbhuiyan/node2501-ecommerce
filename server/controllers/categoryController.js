@@ -4,17 +4,19 @@ const { responseHandler } = require("../services/responseHandler");
 
 const createNewCategory = async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, slug, description } = req.body;
         if (!name) return responseHandler(res, 400, "Category name is required");
+        if (!slug) return responseHandler(res, 400, "Slug is required");
         if (!req.file) return responseHandler(res, 400, "Category Thumnail is required");
 
-        const existingName = await categorySchema.findOne({ name })
-        if (existingName) return responseHandler(res, 400, "Category with this name already exist");
+        const existingSlug = await categorySchema.findOne({ slug })
+        if (existingSlug) return responseHandler(res, 400, "Category with this Slug already exist");
 
         const imgRes = await uploadToCloudinary(req.file, "categories")
 
         const category = categorySchema({
             name,
+            slug,
             description,
             thumbnail: imgRes.secure_url
         })
