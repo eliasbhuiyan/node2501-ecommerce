@@ -5,12 +5,12 @@ const { responseHandler } = require("../services/responseHandler");
 const createNewCategory = async (req, res) => {
     try {
         const { name, slug, description } = req.body;
-        if (!name) return responseHandler(res, 400, "Category name is required");
-        if (!slug) return responseHandler(res, 400, "Slug is required");
-        if (!req.file) return responseHandler(res, 400, "Category Thumnail is required");
+        if (!name) return responseHandler.error(res, 400, "Category name is required");
+        if (!slug) return responseHandler.error(res, 400, "Slug is required");
+        if (!req.file) return responseHandler.error(res, 400, "Category Thumnail is required");
 
         const existingSlug = await categorySchema.findOne({ slug })
-        if (existingSlug) return responseHandler(res, 400, "Category with this Slug already exist");
+        if (existingSlug) return responseHandler.error(res, 400, "Category with this Slug already exist");
 
         const imgRes = await uploadToCloudinary(req.file, "categories")
 
@@ -22,18 +22,18 @@ const createNewCategory = async (req, res) => {
         })
 
         category.save();
-        responseHandler(res, 201, true, "", category)
+        return responseHandler.success(res, 201, category, "Category Created Successfully");
     } catch (error) {
-        return responseHandler(res, 500, "Internal Server Error");
+        return responseHandler.error(res, 500, error.message);
     }
 }
 
 const getAllCategories = async (req, res) => {
     try {
         const categories = await categorySchema.find({});
-        responseHandler(res, 200, true, "", categories)
+        return responseHandler.success(res, 200, categories, "Categories Fetched Successfully");
     } catch (error) {
-        return responseHandler(res, 500, "Internal Server Error");
+        return responseHandler.error(res, 500, error.message);
     }
 }
 

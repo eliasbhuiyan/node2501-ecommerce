@@ -20,34 +20,40 @@ const createProduct = async (req, res) => {
     const thumbnail = req.files?.thumbnail;
     const images = req.files?.images;
 
-    if (!title) return responseHandler(res, 400, "Product title is required");
-    if (!slug) return responseHandler(res, 400, "Slug is required");
+    if (!title)
+      return responseHandler.error(res, 400, "Product title is required");
+    if (!slug) return responseHandler.error(res, 400, "Slug is required");
     const isSlugExist = await productSchema.findOne({
       slug: slug.toLowerCase(),
     });
-    if (isSlugExist) return responseHandler(res, 400, "Slug already exist");
+    if (isSlugExist)
+      return responseHandler.error(res, 400, "Slug already exist");
     if (!description)
-      return responseHandler(res, 400, "Product Description is required");
+      return responseHandler.error(res, 400, "Product Description is required");
     if (!category)
-      return responseHandler(res, 400, "Product Category is required");
+      return responseHandler.error(res, 400, "Product Category is required");
     const isCategoryExist = await categorySchema.findById(category);
-    if (!isCategoryExist) return responseHandler(res, 400, "Invalid Category");
-    if (!price) return responseHandler(res, 400, "Product Price is required");
+    if (!isCategoryExist)
+      return responseHandler.error(res, 400, "Invalid Category");
+    if (!price)
+      return responseHandler.error(res, 400, "Product Price is required");
 
     // apadotor jonno
     const variantsData = JSON.parse(variants);
     if (!Array.isArray(variantsData) || variantsData.length === 0)
-      return responseHandler(res, 400, "Minimum 1 variant is required.");
+      return responseHandler.error(res, 400, "Minimum 1 variant is required.");
 
     for (const variant of variantsData) {
-      if (!variant.sku) return responseHandler(res, 400, "SKU is required.");
+      if (!variant.sku)
+        return responseHandler.error(res, 400, "SKU is required.");
       if (!variant.color)
-        return responseHandler(res, 400, "Color is required.");
-      if (!variant.size) return responseHandler(res, 400, "Color is required.");
+        return responseHandler.error(res, 400, "Color is required.");
+      if (!variant.size)
+        return responseHandler.error(res, 400, "Color is required.");
       if (!SIZE_ENUM.includes(variant.size))
-        return responseHandler(res, 400, "Invalid size");
+        return responseHandler.error(res, 400, "Invalid size");
       if (!variant.stock || variant.stock < 1)
-        return responseHandler(
+        return responseHandler.error(
           res,
           400,
           "Stock is required and must be more then 0",
@@ -56,12 +62,12 @@ const createProduct = async (req, res) => {
 
     const skus = variantsData.map((v) => v.sku);
     if (new Set(skus).size !== skus.length)
-      return responseHandler(res, 400, "SUK must unique");
+      return responseHandler.error(res, 400, "SUK must unique");
 
     if (!thumbnail || thumbnail?.length === 0)
-      return responseHandler(res, 400, "Product Thumbnail is required");
+      return responseHandler.error(res, 400, "Product Thumbnail is required");
     if (images && images?.length > 4)
-      return responseHandler(res, 400, "You can upload images max 4");
+      return responseHandler.error(res, 400, "You can upload images max 4");
 
     const thumnailUrl = await uploadToCloudinary(thumbnail[0], "products");
     let imagesUrl = [];
@@ -88,9 +94,14 @@ const createProduct = async (req, res) => {
       isActive,
     });
     newProduct.save();
-    return responseHandler(res, 201, "Product uploaded successfully", true);
+    return responseHandler.success(
+      res,
+      201,
+      newProduct,
+      "Product uploaded successfully",
+    );
   } catch (error) {
-    return responseHandler(res, 500, "Internal Server Error");
+    return responseHandler.error(res, 500, error.message);
   }
 };
 
@@ -107,7 +118,7 @@ const getProductList = async (req, res) => {
     const pipeline = [
       {
         $match: {
-          "isActive": true,
+          isActive: true,
         },
       },
       {
@@ -137,7 +148,7 @@ const getProductList = async (req, res) => {
 
     const totalPages = Math.ceil(totalProducts / limit);
 
-    responseHandler(res, 200, "", true, {
+    return responseHandler.success(res, 200, {
       products: productList,
       pagination: {
         total: totalProducts,
@@ -149,21 +160,30 @@ const getProductList = async (req, res) => {
       },
     });
   } catch (error) {
-    return responseHandler(res, 500, "Internal Server Error");
+    return responseHandler.error(res, 500, error.message);
   }
 };
 
 const getProductDetals = async (req, res) => {
   try {
     const { slug } = req.params;
-    const productDetails = await productSchema.findOne({ slug, isActive: true }).populate("category", "name").select("-isActive -updatedAt -__v")
-    if (!productDetails) return responseHandler(res, 404, "Product not found");
+    const productDetails = await productSchema
+      .findOne({ slug, isActive: true })
+      .populate("category", "name")
+      .select("-isActive -updatedAt -__v");
+    if (!productDetails)
+      return responseHandler.error(res, 404, "Product not found");
 
-    return responseHandler(res, 200, "", true, productDetails);
+    return responseHandler.success(
+      res,
+      200,
+      productDetails,
+      "Product Details Fetched Successfully",
+    );
   } catch (error) {
-    return responseHandler(res, 500, "Internal Server Error");
+    return responseHandler.error(res, 500, error.message);
   }
-}
+};
 
 const updateProduct = async (req, res) => {
   try {
@@ -175,19 +195,21 @@ const updateProduct = async (req, res) => {
       discountPercentage,
       variants,
       tags,
-      isActive, } = req.body;
+      isActive,
+    } = req.body;
     const { slug } = req.params;
 
-    const productData = await productSchema.findOne({ slug })
+    const productData = await productSchema.findOne({ slug });
 
     console.log(productData);
-
-
-
   } catch (error) {
     console.log(error);
-
   }
-}
+};
 
-module.exports = { createProduct, getProductList, getProductDetals, updateProduct };
+module.exports = {
+  createProduct,
+  getProductList,
+  getProductDetals,
+  updateProduct,
+};

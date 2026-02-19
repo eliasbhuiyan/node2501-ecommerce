@@ -1,16 +1,16 @@
-const { responseHandler } = require("../services/responseHandler")
+const { responseHandler } = require("../services/responseHandler");
 
 const roleCheckMiddleware = (...roles) => {
-    return (req, res, next) => {
-        try {
-            if (roles.includes(req.user.role)) {
-                return next()
-            }
-            return responseHandler(res, 400, "Invalid Request")
-        } catch (error) {
-            return responseHandler(res, 400, "Invalid Request")
-        }
+  return (req, res, next) => {
+    try {
+      if (roles.includes(req.user.role)) {
+        return next();
+      }
+      return responseHandler.error(res, 403, "Access Denied");
+    } catch (error) {
+      return responseHandler.error(res, 403, "Access Denied");
     }
-}
+  };
+};
 
 module.exports = roleCheckMiddleware;
