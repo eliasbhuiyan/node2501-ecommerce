@@ -1,6 +1,6 @@
 const categorySchema = require("../models/categorySchema");
 const productSchema = require("../models/productSchema");
-const { uploadToCloudinary } = require("../services/cloudinaryService");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../services/cloudinaryService");
 const { responseHandler } = require("../services/responseHandler");
 const { SIZE_ENUM } = require("../services/utils");
 
@@ -196,6 +196,7 @@ const updateProduct = async (req, res) => {
       variants,
       tags,
       isActive,
+      destroyImages = []
     } = req.body;
     const { slug } = req.params;
     const thumbnail = req.files?.thumbnail;
@@ -211,7 +212,7 @@ const updateProduct = async (req, res) => {
     if (discountPercentage) productData.discountPercentage = discountPercentage;
     if (isActive) productData.isActive = isActive === "true";
 
-    const variantsData = JSON.parse(variants);
+    const variantsData = variants && JSON.parse(variants);
     if (Array.isArray(variantsData) && variantsData.length > 0) {
       for (const variant of variantsData) {
         if (!variant.sku)
@@ -243,17 +244,39 @@ const updateProduct = async (req, res) => {
       const imgRes = await uploadToCloudinary(thumbnail, "products");
       productData.thumbnail = imgRes.secure_url;
     }
+    let imagesUrl = [];
 
-    // if (images) {
-    //   const resPromise = images.map(async (item) =>
-    //     uploadToCloudinary(item, "products"),
-    //   );
-    //   const results = await Promise.all(resPromise);
-    //   imagesUrl = results.map((r) => r.secure_url);
-    // }
+    let totalImges = productData.images.length;
+    if (destroyImages.length > 0) totalImges -= destroyImages.length;
+    if (Array.isArray(images) && images.length > 0) totalImges += images.length;
+    
+    if (totalImges > 4) return responseHandler.error(res, 400, "You can upload maximum 4 images");
+    if (totalImges < 1) return responseHandler.error(res, 400, "Minimum 1 images should be stay");
+
+    if (images) {
+      const resPromise = images.map(async (item) =>
+        uploadToCloudinary(item, "products"),
+      );
+      const results = await Promise.all(resPromise);
+      imagesUrl = results.map((r) => r.secure_url);
+    }
+   
+    if (Array.isArray(destroyImages) && destroyImages.length > 0) {
+      
+      for (const url of destroyImages) {
+        const imgPublicId = url.split("/").pop().split(".")[0];
+        deleteFromCloudinary(`products/${imgPublicId}`);
+      }
+    }
+
+    let filteredImgs = productData.images.filter((item) => {
+      return !destroyImages.includes(item)
+    }) 
+
+    imagesUrl = imagesUrl.concat(filteredImgs)
+    if (imagesUrl.length > 0) productData.images = imagesUrl;
 
     productData.save()
-
 
     return responseHandler.success(
       res,
