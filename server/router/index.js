@@ -2,10 +2,12 @@ const express = require("express");
 const route = express.Router();
 const authRouter = require("./auth");
 const productRouter = require("./product");
+const authMiddleWare = require("../middleware/authMiddleware");
 
 route.use("/auth", authRouter);
 route.use("/product", productRouter);
 route.use("/category", require("./category"));
+route.use("/cart", authMiddleWare, require("./cart"))
 
 route.get("/", (req, res) => {
   res.send("From Server");
@@ -18,3 +20,4 @@ module.exports = route;
 // CLOUDE_API_SEC=7zDU_v72_tYpT0ojXy0Ogt8ebZI
 // CLOUDE_API_KEY=776332758593124
 // CLOUDE_NAME=djscrr2gy
+// nabata9754@feriwor.com = 123456
