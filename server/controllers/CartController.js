@@ -48,4 +48,26 @@ const addToCart = async (req, res) => {
     }
 }
 
-module.exports = { addToCart };
+const getUserCart = async (req, res) => {
+    try {
+        const cart = await cartSchema.findOne({ user: req.user._id }).select("-user")
+        responseHandler.success(res, 200, cart)
+    } catch (error) {
+        responseHandler.error(res, 500, "Server Error")
+    }
+}
+
+const updateCart = async (req, res) => {
+    try {
+        const { productId, quantity } = req.body;
+
+        if (!productId || !quantity) return responseHandler.error(res, 400, "Invalid Request");
+
+        const cart = await cartSchema.findOne({ user: req.user._id,  })
+
+    } catch (error) {
+        responseHandler.error(res, 500, "Server Error")
+    }
+}
+
+module.exports = { addToCart, getUserCart };
