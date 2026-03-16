@@ -6,7 +6,6 @@ const isValidId = require("../services/isValidId");
 const addToCart = async (req, res) => {
     try {
         const { productId, sku, quantity } = req.body;
-
         if (!productId || !sku || !quantity) return responseHandler.error(res, 400, "Invalid request.")
 
         const productData = await productSchema.findById(productId);

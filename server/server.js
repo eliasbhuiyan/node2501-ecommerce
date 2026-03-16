@@ -6,7 +6,8 @@ var cookieParser = require("cookie-parser");
 const dbConfig = require("./dbConfig");
 const route = require("./router");
 const cloudinaryConfig = require("./services/cloudinaryConfig");
-
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json());
 app.use(cookieParser());
