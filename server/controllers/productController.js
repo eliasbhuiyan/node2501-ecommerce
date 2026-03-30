@@ -1,6 +1,9 @@
 const categorySchema = require("../models/categorySchema");
 const productSchema = require("../models/productSchema");
-const { uploadToCloudinary, deleteFromCloudinary } = require("../services/cloudinaryService");
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} = require("../services/cloudinaryService");
 const { responseHandler } = require("../services/responseHandler");
 const { SIZE_ENUM } = require("../services/utils");
 
@@ -56,7 +59,7 @@ const createProduct = async (req, res) => {
         return responseHandler.error(
           res,
           400,
-          "Stock is required and must be more then 0",
+          "Stock is required and must be more then 0"
         );
     }
 
@@ -74,7 +77,7 @@ const createProduct = async (req, res) => {
 
     if (images) {
       const resPromise = images.map(async (item) =>
-        uploadToCloudinary(item, "products"),
+        uploadToCloudinary(item, "products")
       );
       const results = await Promise.all(resPromise);
       imagesUrl = results.map((r) => r.secure_url);
@@ -98,7 +101,7 @@ const createProduct = async (req, res) => {
       res,
       201,
       newProduct,
-      "Product uploaded successfully",
+      "Product uploaded successfully"
     );
   } catch (error) {
     return responseHandler.error(res, 500, error.message);
@@ -110,6 +113,7 @@ const getProductList = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const category = req.query.category;
+    const search = req.query.search;
     const skip = (page - 1) * limit;
     console.log(category);
 
@@ -142,9 +146,18 @@ const getProductList = async (req, res) => {
         },
       });
     }
+    if (search) {
+      pipeline.push({
+        $match: {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      });
+    }
 
     const productList = await productSchema.aggregate(pipeline);
-    console.log(productList);
 
     const totalPages = Math.ceil(totalProducts / limit);
 
@@ -178,7 +191,7 @@ const getProductDetals = async (req, res) => {
       res,
       200,
       productDetails,
-      "Product Details Fetched Successfully",
+      "Product Details Fetched Successfully"
     );
   } catch (error) {
     return responseHandler.error(res, 500, error.message);
@@ -196,7 +209,7 @@ const updateProduct = async (req, res) => {
       variants,
       tags,
       isActive,
-      destroyImages = []
+      destroyImages = [],
     } = req.body;
     const { slug } = req.params;
     const thumbnail = req.files?.thumbnail;
@@ -208,7 +221,8 @@ const updateProduct = async (req, res) => {
     if (description) productData.description = description;
     if (category) productData.category = category;
     if (price) productData.price = price;
-    if (tags && tags?.length > 0 && Array.isArray(tags)) productData.tags = tags;
+    if (tags && tags?.length > 0 && Array.isArray(tags))
+      productData.tags = tags;
     if (discountPercentage) productData.discountPercentage = discountPercentage;
     if (isActive) productData.isActive = isActive === "true";
 
@@ -227,7 +241,7 @@ const updateProduct = async (req, res) => {
           return responseHandler.error(
             res,
             400,
-            "Stock is required and must be more then 0",
+            "Stock is required and must be more then 0"
           );
       }
 
@@ -235,7 +249,7 @@ const updateProduct = async (req, res) => {
       if (new Set(skus).size !== skus.length)
         return responseHandler.error(res, 400, "SUK must unique");
 
-      productData.variants = variantsData
+      productData.variants = variantsData;
     }
 
     if (thumbnail) {
@@ -249,20 +263,21 @@ const updateProduct = async (req, res) => {
     let totalImges = productData.images.length;
     if (destroyImages.length > 0) totalImges -= destroyImages.length;
     if (Array.isArray(images) && images.length > 0) totalImges += images.length;
-    
-    if (totalImges > 4) return responseHandler.error(res, 400, "You can upload maximum 4 images");
-    if (totalImges < 1) return responseHandler.error(res, 400, "Minimum 1 images should be stay");
+
+    if (totalImges > 4)
+      return responseHandler.error(res, 400, "You can upload maximum 4 images");
+    if (totalImges < 1)
+      return responseHandler.error(res, 400, "Minimum 1 images should be stay");
 
     if (images) {
       const resPromise = images.map(async (item) =>
-        uploadToCloudinary(item, "products"),
+        uploadToCloudinary(item, "products")
       );
       const results = await Promise.all(resPromise);
       imagesUrl = results.map((r) => r.secure_url);
     }
-   
+
     if (Array.isArray(destroyImages) && destroyImages.length > 0) {
-      
       for (const url of destroyImages) {
         const imgPublicId = url.split("/").pop().split(".")[0];
         deleteFromCloudinary(`products/${imgPublicId}`);
@@ -270,19 +285,19 @@ const updateProduct = async (req, res) => {
     }
 
     let filteredImgs = productData.images.filter((item) => {
-      return !destroyImages.includes(item)
-    }) 
+      return !destroyImages.includes(item);
+    });
 
-    imagesUrl = imagesUrl.concat(filteredImgs)
+    imagesUrl = imagesUrl.concat(filteredImgs);
     if (imagesUrl.length > 0) productData.images = imagesUrl;
 
-    productData.save()
+    productData.save();
 
     return responseHandler.success(
       res,
       200,
       productData,
-      "Product Updated Successfully",
+      "Product Updated Successfully"
     );
   } catch (error) {
     console.log(error);
