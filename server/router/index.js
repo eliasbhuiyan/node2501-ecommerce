@@ -5,6 +5,9 @@ const productRouter = require("./product");
 const order = require("./order");
 const authMiddleWare = require("../middleware/authMiddleware");
 
+route.get("/", (req, res) => { res.send("Server healthy.") })
+
+
 route.use("/auth", authRouter);
 route.use("/product", productRouter);
 route.use("/category", require("./category"));

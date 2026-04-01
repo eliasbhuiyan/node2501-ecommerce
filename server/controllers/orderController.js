@@ -1,7 +1,9 @@
 const cartSchema = require("../models/cartSchema");
 const Orderschema = require("../models/Orderschema");
 const { responseHandler } = require("../services/responseHandler");
-const stripe = require("stripe")(process.env.STRIPESE);
+const stripe = require("stripe")(process.env.STRIPE_SEC_KEY);
+const endpointSecret = process.env.STRIPE_ENDPOINT;
+
 
 // paymentType = SSLCommerz / cash
 const checkOut = async (req, res) => {
@@ -56,6 +58,9 @@ const checkOut = async (req, res) => {
         },
       ],
       customer_email: `${req.user.email}`,
+      metadata: {
+        orderId: `${orderData._id}`,
+      },
       success_url: `https://example.com/success`,
       cancel_url: `https://example.com/error`,
     });
@@ -68,4 +73,33 @@ const checkOut = async (req, res) => {
   }
 };
 
-module.exports = { checkOut };
+const webhook = async (req, res) => {
+  const signature = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      signature,
+      endpointSecret
+    );
+  } catch (err) {
+    res.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  console.log(event);
+
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+
+    // Saving the payment details in the database
+    const orderData = await Orderschema.findByIdAndUpdate(session.metadata.orderId, { "payment.status": "paid" }, { new: true })
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  res.send();
+}
+
+module.exports = { checkOut, webhook };
