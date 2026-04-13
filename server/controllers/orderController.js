@@ -56,6 +56,7 @@ const checkOut = async (req, res) => {
           },
           quantity: 1,
         },
+
       ],
       customer_email: `${req.user.email}`,
       metadata: {
@@ -97,6 +98,8 @@ const webhook = async (req, res) => {
     // Saving the payment details in the database
     const orderData = await Orderschema.findByIdAndUpdate(session.metadata.orderId, { "payment.status": "paid" }, { new: true })
   }
+
+  
 
   // Return a 200 response to acknowledge receipt of the event
   res.send();
