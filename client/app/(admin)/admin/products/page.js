@@ -1,11 +1,12 @@
+"use client";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
 import { formatCurrency, getDiscountedPrice } from "@/lib/price";
+import { useGetProductsQuery } from "../../services/api";
+import Image from "next/image";
 
 export default function AdminProductsPage() {
-  const categoryMap = new Map(categories.map((category) => [category._id, category]));
+  const { data: products, isLoading, error } = useGetProductsQuery();
 
   return (
     <>
@@ -35,38 +36,62 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => {
-                const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
-
-                return (
-                  <tr key={product.slug} className="border-b border-slate-100 text-slate-700 last:border-0">
-                    <td className="py-3 pr-4">
-                      <p className="font-semibold text-slate-900">{product.title}</p>
-                      <p className="text-xs text-slate-500">{product.slug}</p>
-                    </td>
-                    <td className="py-3 pr-4">{categoryMap.get(product.category)?.name || "-"}</td>
-                    <td className="py-3 pr-4">
-                      <p className="font-semibold text-slate-900">
-                        {formatCurrency(getDiscountedPrice(product))}
-                      </p>
-                      {product.discountPercentage > 0 ? (
-                        <p className="text-xs text-slate-500 line-through">
-                          {formatCurrency(product.price)}
+              {isLoading ? (
+                <p>Product list loading...</p>
+              ) : (
+                products?.data?.products?.map((product) => {
+                  const totalStock = product.variants.reduce(
+                    (sum, variant) => sum + variant.stock,
+                    0,
+                  );
+                  return (
+                    <tr
+                      key={product.slug}
+                      className="border-b border-slate-100 text-slate-700 last:border-0"
+                    >
+                      <td className="py-3 pr-4 flex items-center gap-2">
+                        <Image
+                          src={product?.thumbnail}
+                          width={200}
+                          height={200}
+                          alt="product"
+                          className="w-14 rounded-2xl"
+                        />
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            {product.title}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {product.slug}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 capitalize">
+                        {product.category?.name || "-"}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="font-semibold text-slate-900">
+                          {formatCurrency(getDiscountedPrice(product))}
                         </p>
-                      ) : null}
-                    </td>
-                    <td className="py-3 pr-4">{totalStock}</td>
-                    <td className="py-3">
-                      <Link
-                        href={`/admin/products/${product.slug}/edit`}
-                        className="text-xs font-semibold text-orange-600 hover:text-orange-700"
-                      >
-                        Update product
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
+                        {product.discountPercentage > 0 ? (
+                          <p className="text-xs text-slate-500 line-through">
+                            {formatCurrency(product.price)}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="py-3 pr-4">{totalStock}</td>
+                      <td className="py-3">
+                        <Link
+                          href={`/admin/products/${product.slug}/edit`}
+                          className="text-xs font-semibold text-orange-600 hover:text-orange-700"
+                        >
+                          Update product
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -1,8 +1,8 @@
 const cartSchema = require("../models/cartSchema");
 const Orderschema = require("../models/Orderschema");
 const { responseHandler } = require("../services/responseHandler");
-const stripe = require("stripe")(process.env.STRIPE_SEC_KEY);
-const endpointSecret = process.env.STRIPE_ENDPOINT;
+const stripe = require("stripe")("process.env.STRIPE_SEC_KEY");
+const endpointSecret = "process.env.STRIPE_ENDPOINT";
 
 
 // paymentType = SSLCommerz / cash
@@ -99,7 +99,7 @@ const webhook = async (req, res) => {
     const orderData = await Orderschema.findByIdAndUpdate(session.metadata.orderId, { "payment.status": "paid" }, { new: true })
   }
 
-  
+
 
   // Return a 200 response to acknowledge receipt of the event
   res.send();
