@@ -18,6 +18,7 @@ const { isValidEmail } = require("../services/utils");
 const signupUser = async (req, res) => {
   try {
     const { fullName, email, password, phone, address } = req.body;
+    if (!fullName) return res.status(400).send({ message: "Full Name is required" });
     if (!email) return res.status(400).send({ message: "Email is required" });
     if (!isValidEmail(email))
       return responseHandler.error(res, 400, "Enter a valid email address");
@@ -131,11 +132,11 @@ const signInUser = async (req, res) => {
       return responseHandler.error(res, 400, "Password is required");
     const existingUser = await userSchema.findOne({ email });
     if (!existingUser)
-      return responseHandler.error(res, 400, "Email is not registered");
+      return responseHandler.error(res, 400, "Invalid Crediential");
 
     const matchPass = await existingUser.comparePassword(password);
     if (!matchPass) {
-      return responseHandler.error(res, 400, "Wrong Password");
+      return responseHandler.error(res, 400, "Invalid Crediential");
     }
     if (!existingUser.isVerified)
       return responseHandler.error(res, 400, "Email is not verified.");

@@ -7,6 +7,8 @@ import Image from "next/image";
 
 export default function AdminProductsPage() {
   const { data: products, isLoading, error } = useGetProductsQuery();
+  console.log(products);
+  
 
   return (
     <>
@@ -23,7 +25,7 @@ export default function AdminProductsPage() {
         }
       />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm mt-10">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>

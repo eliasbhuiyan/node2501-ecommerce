@@ -6,17 +6,22 @@ var cookieParser = require("cookie-parser");
 const dbConfig = require("./dbConfig");
 const route = require("./router");
 const cloudinaryConfig = require("./services/cloudinaryConfig");
-const dns = require('dns');
+const dns = require("dns");
 const { webhook } = require("./controllers/orderController");
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-app.use(express.urlencoded({ extended: true }))
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 require("dotenv").config();
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
 dbConfig();
 cloudinaryConfig();
 
-app.post("/webhook", express.raw({ type: 'application/json' }), webhook)
+app.post("/webhook", express.raw({ type: "application/json" }), webhook);
 app.use(express.json());
 
 app.use(route);
