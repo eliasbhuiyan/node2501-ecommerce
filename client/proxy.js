@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const SECRET = new TextEncoder().encode(process.env.JWT_SEC);
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
