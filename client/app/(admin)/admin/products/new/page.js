@@ -1,11 +1,20 @@
 "use client";
+import {
+  useCreateNewProductMutation,
+  useGetCategoriesQuery,
+} from "@/app/(admin)/services/api";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { categories } from "@/data/categories";
+import { generateSlug } from "@/lib/utils";
+import Image from "next/image";
 import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CreateProductPage() {
+  const [createNewProduct, { isError }] = useCreateNewProductMutation();
+  const { data: categoryList } = useGetCategoriesQuery();
   const [variants, setVariants] = useState([
     {
       id: Date.now(),
@@ -20,10 +29,12 @@ export default function CreateProductPage() {
     slug: "",
     description: "",
     category: "",
-    price: "",
-    discountPercentage: "",
+    price: 0,
+    discountPercentage: 0,
     variants: "",
     tags: "",
+    thumbnail: null,
+    images: [],
   });
 
   const handelAddNewVariant = () => {
@@ -42,6 +53,7 @@ export default function CreateProductPage() {
     if (variants.length > 1) {
       const updatedVariantList = variants.filter((vitem) => vitem.id !== id);
       setVariants(updatedVariantList);
+      setNewProduct((prev) => ({ ...prev, variants: updatedVariantList }));
     }
   };
 
@@ -53,24 +65,62 @@ export default function CreateProductPage() {
       return vitem;
     });
     setVariants(variantInputChange);
+    setNewProduct((prev) => ({ ...prev, variants: variantInputChange }));
   };
 
-  console.log(variants);
-
+  const handelImages = (e) => {
+    let imags = [...newProduct.images];
+    imags.push(e.target.files[0]);
+    setNewProduct((prev) => ({ ...prev, images: imags }));
+  };
+  const handelRemoveImg = (i) => {
+    const imgs = newProduct.images.filter((item, idx) => idx !== i && item);
+    setNewProduct((prev) => ({ ...prev, images: imgs }));
+  };
+  const handelUploadNewProduct = async (e) => {
+    e.preventDefault();
+    // Form Data
+    const formData = new FormData();
+    // add file/file_id if there is one
+    for (const items in newProduct) {
+      if (items == "variants") {
+        formData.append(items, JSON.stringify(newProduct[items]));
+      } else if (items == "images") {
+        newProduct.images.forEach((file) => {
+          formData.append("images", file);
+        });
+      } else {
+        formData.append(items, newProduct[items]);
+      }
+    }
+    const res = await createNewProduct(formData);
+    console.log(res);
+    if (isError) {
+      toast.error(res.message);
+    }
+    toast.success(res.message);
+  };
   return (
     <>
       <AdminPageHeader
         title="Create New Product"
         description="Design-only form using dummy fields based on your product schema."
       />
-
+      <Toaster />
       <section className="rounded-3xl mt-16 border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <form className="grid gap-4 md:grid-cols-2">
+        <form
+          onSubmit={handelUploadNewProduct}
+          className="grid gap-4 md:grid-cols-2"
+        >
           <Input
             value={newProduct.title}
-            onChange={(e) =>
-              setNewProduct((prev) => ({ ...prev, title: e.target.value }))
-            }
+            onChange={(e) => {
+              setNewProduct((prev) => ({ ...prev, title: e.target.value }));
+              setNewProduct((prev) => ({
+                ...prev,
+                slug: generateSlug(e.target.value),
+              }));
+            }}
             placeholder="Enter product title"
             label="Title"
           />
@@ -87,15 +137,36 @@ export default function CreateProductPage() {
             <span className="text-sm font-semibold text-slate-700">
               Category
             </span>
-            <select className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm">
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
+            <select
+              onChange={(e) =>
+                setNewProduct((prev) => ({ ...prev, category: e.target.value }))
+              }
+              className="w-full rounded-xl border capitalize border-slate-200 px-4 py-2.5 text-sm"
+            >
+              {categoryList?.data?.map((category) => (
+                <option
+                  key={category._id}
+                  value={category._id}
+                  className="capitalize"
+                >
                   {category.name}
                 </option>
               ))}
             </select>
           </label>
-          <Input min={1} type="number" placeholder="0" label="Price" />
+          <Input
+            value={newProduct.price}
+            onChange={(e) =>
+              setNewProduct((prev) => ({
+                ...prev,
+                price: e.target.value,
+              }))
+            }
+            min={1}
+            type="number"
+            placeholder="0"
+            label="Price"
+          />
           <Input
             value={newProduct.discountPercentage}
             onChange={(e) =>
@@ -136,9 +207,59 @@ export default function CreateProductPage() {
             placeholder="e.g hoodie, winter, street"
             label="Tags (comma separated)"
           />
-          <Input type="file" label="Upload Thumbnail" />
-
-          <Input type="file" label="Images" multiple />
+          <div>
+            <Input
+              onChange={(e) =>
+                setNewProduct((prev) => ({
+                  ...prev,
+                  thumbnail: e.target.files[0],
+                }))
+              }
+              type="file"
+              label="Upload Thumbnail"
+            />
+            <div className="mt-5">
+              {newProduct.thumbnail && (
+                <Image
+                  src={URL.createObjectURL(newProduct.thumbnail)}
+                  width={100}
+                  height={200}
+                  alt="thumbnail"
+                  className="rounded"
+                />
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="mt-5 flex gap-1">
+              {newProduct.images.length > 0 &&
+                newProduct.images.map((imgUrl, i) => (
+                  <div key={imgUrl} className="relative">
+                    <Image
+                      src={URL.createObjectURL(imgUrl)}
+                      width={80}
+                      height={100}
+                      alt="images"
+                      className="rounded border border-slate-600"
+                    />
+                    <Button
+                      onClick={() => handelRemoveImg(i)}
+                      variant="danger"
+                      size="sm"
+                      className="absolute top-0 right-0"
+                    >
+                      X
+                    </Button>
+                  </div>
+                ))}
+            </div>
+            <Input
+              onChange={handelImages}
+              type="file"
+              label="Images"
+              multiple
+            />
+          </div>
 
           <div className="md:col-span-2">
             <div className="flex justify-between">
@@ -208,7 +329,7 @@ export default function CreateProductPage() {
 
           <div className="md:col-span-2 flex gap-3 pt-2">
             <Button
-              type="button"
+              type="submit"
               className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white"
             >
               Save Product
