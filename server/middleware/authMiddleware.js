@@ -3,7 +3,7 @@ const { responseHandler } = require("../services/responseHandler");
 
 const authMiddleWare = async (req, res, next) => {
   try {
-    const token = req.cookies;
+    const token = req.cookies;    
     if (!token["X-AS-Token"]) {
       return responseHandler.error(res, 401, "Invalid Request");
     }
