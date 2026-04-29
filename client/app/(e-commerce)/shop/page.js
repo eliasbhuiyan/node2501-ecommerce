@@ -45,9 +45,13 @@ export default async function ShopPage({ searchParams }) {
   const selectedCategory = (params?.category || "").toString();
   const sortBy = (params?.sort || "featured").toString();
   const searchQuery = (params?.query || "").toString().trim();
-  const parsedMaxPrice = Number.parseInt((params?.maxPrice || "").toString(), 10);
+  const parsedMaxPrice = Number.parseInt(
+    (params?.maxPrice || "").toString(),
+    10,
+  );
   const parsedPage = Number.parseInt((params?.page || "1").toString(), 10);
-  const currentPage = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+  const currentPage =
+    Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const absoluteMaxPrice = Math.ceil(
     Math.max(...products.map((product) => getDiscountedPrice(product)), 0),
   );
@@ -98,20 +102,36 @@ export default async function ShopPage({ searchParams }) {
     return 0;
   });
 
-  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedProducts.length / ITEMS_PER_PAGE),
+  );
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
-  const visibleProducts = sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const visibleProducts = sortedProducts.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
   const hasResults = visibleProducts.length > 0;
 
   const categoryMap = new Map(categories.map((item) => [item._id, item]));
   const pageLinks = Array.from({ length: totalPages }, (_, index) => index + 1);
 
+  const res = await fetch("http://localhost:8000/product/allproducts", {
+    next: {
+      revalidate: 5000,
+    },
+  });
+  const data = await res.json();
+  console.log(data);
+
   return (
     <PageContainer className="pt-10 sm:pt-14">
       <section className="rounded-4xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8">
-        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Shop</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+          Shop
+        </p>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
           Curated Styles For Everyday Motion
         </h1>
@@ -205,7 +225,10 @@ export default async function ShopPage({ searchParams }) {
 
           <div className="mt-6">
             <h3 className="text-sm font-bold text-slate-900">Price Range</h3>
-            <form action="/shop" className="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
+            <form
+              action="/shop"
+              className="mt-3 space-y-3 rounded-xl bg-slate-50 p-3"
+            >
               <input type="hidden" name="query" value={searchQuery} />
               <input type="hidden" name="category" value={selectedCategory} />
               <input type="hidden" name="sort" value={sortBy} />
@@ -241,7 +264,9 @@ export default async function ShopPage({ searchParams }) {
                   <ProductCard
                     key={product.slug}
                     product={product}
-                    categoryName={categoryMap.get(product.category)?.name || "Category"}
+                    categoryName={
+                      categoryMap.get(product.category)?.name || "Category"
+                    }
                   />
                 ))}
               </div>
@@ -310,7 +335,9 @@ export default async function ShopPage({ searchParams }) {
             </>
           ) : (
             <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">No products found</h3>
+              <h3 className="text-xl font-black text-slate-900">
+                No products found
+              </h3>
               <p className="mt-2 text-sm text-slate-600">
                 Try changing your search, category, or sorting options.
               </p>

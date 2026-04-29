@@ -6,7 +6,6 @@ import {
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { categories } from "@/data/categories";
 import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";

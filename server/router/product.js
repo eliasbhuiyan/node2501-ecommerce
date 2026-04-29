@@ -22,10 +22,16 @@ route.post(
   createProduct,
 );
 route.get("/allproducts", getProductList);
-route.get("/:slug", getProductDetals)
-route.put("/update/:slug", authMiddleWare, roleCheckMiddleware("admin", "editor"), upload.fields([
-  { name: "thumbnail", maxCount: 1 },
-  { name: "images", maxCount: 4 },
-]), updateProduct)
+route.get("/:slug", getProductDetals);
+route.put(
+  "/update/:slug",
+  authMiddleWare,
+  roleCheckMiddleware("admin", "editor"),
+  upload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "images", maxCount: 4 },
+  ]),
+  updateProduct,
+);
 
 module.exports = route;

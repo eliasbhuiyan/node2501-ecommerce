@@ -59,7 +59,7 @@ const createProduct = async (req, res) => {
         return responseHandler.error(
           res,
           400,
-          "Stock is required and must be more then 0"
+          "Stock is required and must be more then 0",
         );
     }
 
@@ -77,7 +77,7 @@ const createProduct = async (req, res) => {
 
     if (images) {
       const resPromise = images.map(async (item) =>
-        uploadToCloudinary(item, "products")
+        uploadToCloudinary(item, "products"),
       );
       const results = await Promise.all(resPromise);
       imagesUrl = results.map((r) => r.secure_url);
@@ -101,7 +101,7 @@ const createProduct = async (req, res) => {
       res,
       201,
       newProduct,
-      "Product uploaded successfully"
+      "Product uploaded successfully",
     );
   } catch (error) {
     return responseHandler.error(res, 500, error.message);
@@ -109,6 +109,8 @@ const createProduct = async (req, res) => {
 };
 
 const getProductList = async (req, res) => {
+  console.log("Product list api hit");
+
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -191,7 +193,7 @@ const getProductDetals = async (req, res) => {
       res,
       200,
       productDetails,
-      "Product Details Fetched Successfully"
+      "Product Details Fetched Successfully",
     );
   } catch (error) {
     return responseHandler.error(res, 500, error.message);
@@ -241,7 +243,7 @@ const updateProduct = async (req, res) => {
           return responseHandler.error(
             res,
             400,
-            "Stock is required and must be more then 0"
+            "Stock is required and must be more then 0",
           );
       }
 
@@ -271,7 +273,7 @@ const updateProduct = async (req, res) => {
 
     if (images) {
       const resPromise = images.map(async (item) =>
-        uploadToCloudinary(item, "products")
+        uploadToCloudinary(item, "products"),
       );
       const results = await Promise.all(resPromise);
       imagesUrl = results.map((r) => r.secure_url);
@@ -297,7 +299,7 @@ const updateProduct = async (req, res) => {
       res,
       200,
       productData,
-      "Product Updated Successfully"
+      "Product Updated Successfully",
     );
   } catch (error) {
     console.log(error);
