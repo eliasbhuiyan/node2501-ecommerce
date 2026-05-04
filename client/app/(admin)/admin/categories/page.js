@@ -7,9 +7,8 @@ import { useGetCategoriesQuery } from "../../services/api";
 import Image from "next/image";
 
 export default function CategoriesListPage() {
-  const { data } = useGetCategoriesQuery();
+  const { data, refetch } = useGetCategoriesQuery();
   console.log(data);
-
   return (
     <>
       <AdminPageHeader
